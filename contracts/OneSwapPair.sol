@@ -1259,5 +1259,9 @@ contract OneSwapFactoryPXYTEST {
     function feeBPS() external pure returns (uint32) {
         return 30;
     }
+
+    function tokensToPair(address stock, address money, bool inOnlySwap) external view returns (address){
+        return pairs[stock][money];
+    }
 }
 

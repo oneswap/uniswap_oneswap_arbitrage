@@ -11,13 +11,14 @@ contract("test flash swap with oneswap", async (accounts)=>{
         oneswap = await oneswapFactory.deployed();
         ones = await Ones.new("ones", "ones", 100_0000_0000, 18);
         usdt = await Ones.new("usdt", "usdt", 100_0000_0000, 18);
-        console.log(ones.address);
-        console.log(usdt.address);
+        console.log('ones address:',ones.address);
+        console.log('usdt address:',usdt.address);
     });
 
     it("create uniswap pair & add liquidity",async () =>{
         result = await uniswap.createPair(ones.address,usdt.address);
         uniswapp = await uniswapPair.at(result.logs[0].args[2]);
+        console.log('uniswap pair address:',uniswapp.address);
         let onesToAdd = 10000;
         await ones.transfer(uniswapp.address,onesToAdd);
         await usdt.transfer(uniswapp.address,100*onesToAdd);
@@ -41,7 +42,7 @@ contract("test flash swap with oneswap", async (accounts)=>{
        impl = await pairCon.new();
        result = await oneswap.createPair(ones.address, usdt.address, impl.address);
        pairAddr = result.logs[0].args.pair;
-       console.log("pairAddr: ", pairAddr)
+       console.log("oneswap pair address: ", pairAddr)
        oneswapp = await pairCon.at(pairAddr)
 
        let onesToAdd = 10000;
@@ -55,23 +56,27 @@ contract("test flash swap with oneswap", async (accounts)=>{
    });
 
    it("create flashswap contracts",async()=>{
-        flashSwap = await FlashSwap.new(uniswap.address,oneswapp.address);
+        flashSwap = await FlashSwap.new(uniswap.address,oneswap.address);
         console.log(flashSwap.address);
    });
 
    it("flashswap with oneswap", async ()=>{
-        reserves = await uniswapp.getReserves();
-        console.log(reserves[0],reserves[1]);
+       reserves = await uniswapp.getReserves();
+       console.log(reserves[0],reserves[1]);
 
-        bytes = new(Array);
-        bytes.push(1);
-        if (onesIsToken0){
-            await uniswapp.swap(100,0,flashSwap.address,bytes);
-        }else{
-            await uniswapp.swap(0,100,flashSwap.address,bytes);
-        }
-        reserves = await uniswapp.getReserves();
-        console.log(reserves[0],reserves[1]);
+       balance = await usdt.balanceOf(accounts[1]);
+       console.log(balance);
+
+       bytes = web3.eth.abi.encodeParameters(['bool','bool'],[onesIsToken0,false]);
+       if (onesIsToken0){
+           await uniswapp.swap(100,0,flashSwap.address,bytes,{from:accounts[1]});
+       }else{
+           await uniswapp.swap(0,100,flashSwap.address,bytes,{from:accounts[1]});
+       }
+       reserves = await uniswapp.getReserves();
+       console.log(reserves[0],reserves[1]);
+       balance = await usdt.balanceOf(accounts[1]);
+       console.log(balance);
    })
 
 })
